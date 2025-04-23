@@ -1,3 +1,4 @@
+
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
@@ -22,7 +23,7 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{7021ac21-8c3f-41a8-9867-ad723c5aba82}</ProjectGuid>
-    <RootNamespace>FGCStream</RootNamespace>
+    <RootNamespace>GRBStream</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -142,24 +143,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FGC-Stream\FGC-Stream.cpp" />
-    <ClCompile Include="FGC-Stream\main.cpp" />
+    <ClCompile Include="GRB-Stream\GRB-Stream.cpp" />
+    <ClCompile Include="GRB-Stream\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="FGC-Stream\FGC-Stream.h" />
-    <ClInclude Include="FGC-Stream\Transaction.h" />
-    <ClInclude Include="FGC-Stream\util.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="Datasets\in.txt" />
-    <Text Include="Datasets\test_input.txt" />
-    <Text Include="Debug\FGC-Stream.Build.CppClean.log" />
-    <Text Include="Debug\FGC-Stream.log" />
-    <Text Include="Debug\FGC-Stream.vcxproj.FileListAbsolute.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Debug\FGC-Stream.exe" />
-    <None Include="README.md" />
+    <ClInclude Include="GRB-Stream\GRB-Stream.h" />
+    <ClInclude Include="GRB-Stream\Transaction.h" />
+    <ClInclude Include="GRB-Stream\util.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

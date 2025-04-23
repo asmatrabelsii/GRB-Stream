@@ -10,4 +10,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd FGC-Stream && g++ -g -Wall *.cpp -o FGC-Stream && ./FGC-Stream \"../Datasets/in.txt\" 3 1000 \"../out_CI.txt\" 1000 \"../out_Or.txt\""
+args = "cd FGC-Stream && g++ -g -Wall *.cpp -o FGC-Stream && ./FGC-Stream \"../Datasets/in.txt\" 3 1000 \"../outCI.txt\" 1000 \"../outOr.txt\""

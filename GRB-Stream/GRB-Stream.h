@@ -72,7 +72,7 @@ struct GenNode {
 };
 
 struct EquivClass { 
-		GenNode* aproximative; 
+		GenNode* representative; 
 		std::set<GenNode*> members; 
 		std::set<EquivClass*> immediate_succs; 
 		uint32_t support; 

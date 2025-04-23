@@ -1289,7 +1289,7 @@ void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lat
 			for (auto subset : subsets) { 
 					if (equiv_map.count(subset)) { 
 							EquivClass* parent_ec = equiv_map[subset]; 
-							std::set<GenNode*>& L = *parent_ec->aproximative->immediate_succs; 
+							std::set<GenNode*>& L = *parent_ec->representative->immediate_succs; 
 							if (L.empty()) { 
 									L.insert(g); 
 									if (!g_class) { 
@@ -1307,7 +1307,7 @@ void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lat
 													// Same equivalence class (Proposition 2a) 
 													g_class = equiv_map[succ_items]; 
 													g_class->members.insert(g); 
-													manageEquivClass(g, g_class->aproximative, lattice); 
+													manageEquivClass(g, g_class->representative, lattice); 
 													added = true; 
 													break; 
 											} else if (g->support < succ->support && g->support == union_supp) { 
@@ -1342,7 +1342,7 @@ void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lat
 
 void manageEquivClass(GenNode* g, GenNode* R, std::vector<EquivClass*>& lattice) { 
 	for (auto ec : lattice) { 
-			auto& succs = *ec->aproximative->immediate_succs; 
+			auto& succs = *ec->representative->immediate_succs; 
 			if (succs.count(g)) { 
 					succs.erase(g); 
 					succs.insert(R); 
@@ -1373,9 +1373,9 @@ void extractAR(std::vector<EquivClass*>& lattice, TIDList* TList, float minconf,
 	std::map<EquivClass*, std::set<uint32_t>> closures; 
 	std::queue<EquivClass*> q; 
 	for (auto ec : lattice) { 
-			if (ec->aproximative->items().empty()) {
+			if (ec->representative->items().empty()) {
 					q.push(ec); 
-					closures[ec] = TList->getISTL(ec->aproximative->items()); 
+					closures[ec] = TList->getISTL(ec->representative->items()); 
 					break; 
 			} 
 	} 
@@ -1383,13 +1383,13 @@ void extractAR(std::vector<EquivClass*>& lattice, TIDList* TList, float minconf,
 			EquivClass* curr = q.front(); 
 			q.pop(); 
 			std::set<uint32_t> curr_closure = closures[curr]; 
-			if (curr->aproximative->items().empty() && !curr_closure.empty()) { 
+			if (curr->representative->items().empty() && !curr_closure.empty()) { 
 					out << "Rule: {} => "; 
 					for (auto i : curr_closure) out << i << " "; 
 					out << "(support: " << curr->support << ", confidence: 1.0)\n"; 
 			} 
 			for (auto succ_ec : curr->immediate_succs) { 
-					std::set<uint32_t> succ_items = succ_ec->aproximative->items(); 
+					std::set<uint32_t> succ_items = succ_ec->representative->items(); 
 					std::set<uint32_t> f; 
 					for (auto g : succ_ec->members) { 
 							std::set<uint32_t> g_items = g->items(); 

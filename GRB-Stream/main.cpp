@@ -473,7 +473,7 @@ int main(int argc, char** argv)
   }
   
   for (auto ec : lattice) {
-      delete ec->aproximative->immediate_succs;
+      delete ec->representative->immediate_succs;
       delete ec;
   }
   FMG_K.clear();

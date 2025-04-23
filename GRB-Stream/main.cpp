@@ -7,6 +7,7 @@
 uint32_t NODE_ID = 0;
 uint32_t minSupp = 3;
 uint32_t totalGens = 0;
+float minConf = 0.5;
 
 //const uint32_t windowSize = 1000;
 

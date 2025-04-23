@@ -10,4 +10,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd GRB-Stream && g++ -g -Wall *.cpp -o GRB-Stream && ./GRB-Stream \"../Datasets/in.txt\" 3 1000 \"../outCI.txt\" 1000 \"../outOr.txt\""
+args = "cd GRB-Stream && g++ -g -Wall *.cpp -o GRB-Stream && ./GRB-Stream \"../Datasets/in.txt\" 3 1000 \"../outCI.txt\" 1000 \"../outOr.txt\" 0.5"

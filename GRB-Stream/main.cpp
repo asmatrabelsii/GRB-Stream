@@ -311,201 +311,175 @@ void Transaction<uint32_t>::load(char* _s, const char* _delims, const short _wit
 
 int main(int argc, char** argv)
 {
-  /*for (int k = 0; k < windowSize; k++) {
-    TListByID[k] = new std::set<uint32_t>;
-  }*/
-
-  auto start = std::chrono::high_resolution_clock::now();
-  uint32_t window_size = 0;
-
-  uint32_t exitAt = 0;
-  if (argc < 3) return 1;
-  minSupp = strtoul(argv[2], 0, 10);//1;
-  if (argc >= 4) {
-    exitAt = strtoul(argv[3], 0, 10);//1;
+    auto start = std::chrono::high_resolution_clock::now();
+    uint32_t window_size = 0;
+    uint32_t exitAt = 0;
+    float minconf = 0.5;
+  if (argc < 3) {
+    std::cerr << "Usage: " << argv[0] << " <input_file> <min_supp> [exit_at] [out_cis_gen] [window_size] [out_order] [min_conf]" << std::endl;
+      return 1;
   }
-  std::ifstream input(/*"Datasets/in.txt"*/argv[1]);
-  char s[10000];
-  uint32_t i = 0;
-
+  minSupp = strtoul(argv[2], 0, 10);
+  if (argc >= 4) {
+      exitAt = strtoul(argv[3], 0, 10);
+  }
   char* output_cis_gen = 0;
   char* output_order = 0;
-  if (argc >=5) {
-    output_cis_gen = argv[4];
+  if (argc >= 5) {
+      output_cis_gen = argv[4];
   }
-
   if (argc >= 6) {
-    window_size = strtoul(argv[5], 0, 10);//1;
-    TListByID = new std::set<uint32_t> * [window_size];
-    for (uint32_t k = 0; k < window_size; k++) {
-      TListByID[k] = new std::set<uint32_t>();
-    }
+      window_size = strtoul(argv[5], 0, 10);
+      TListByID = new std::set<uint32_t>*[window_size];
+      for (uint32_t k = 0; k < window_size; k++) {
+          TListByID[k] = new std::set<uint32_t>();
+      }
   }
-
   if (argc >= 7) {
-    output_order = argv[6];
+      output_order = argv[6];
   }
-
+  if (argc >= 8) {
+      minconf = strtof(argv[7], 0); // Parse minimum confidence
+      if (minconf < 0.0f || minconf > 1.0f) {
+          std::cerr << "Minimum confidence must be between 0.0 and 1.0" << std::endl;
+          return 1;
+      }
+  }
+  
+  std::ifstream input(argv[1]);
+  if (!input.is_open()) {
+      std::cerr << "Failed to open input file: " << argv[1] << std::endl;
+      return 1;
+  }
+  char s[10000];
+  uint32_t i = 0;
+  
   TIDList* TList = new TIDList();
-
   std::set<uint32_t> closSet;
   std::multimap<uint32_t, ClosedIS*> ClosureList;
-
+  
   input.getline(s, 10000);
   char* pch = strtok(s, " ");
   Transaction<uint32_t> new_transaction = Transaction<uint32_t>(pch, " ", 0);
   i++;
   std::vector<uint32_t> closSetvec = *new_transaction.data();
   TListByID[i % window_size]->insert(closSetvec.begin(), closSetvec.end());
-
+  
   closSet.insert(closSetvec.begin(), closSetvec.end());
   TList->add(closSet, i);
-
+  
   while (i < minSupp) {
-
-    input.getline(s, 10000);
-    char* pch = strtok(s, " ");
-    Transaction<uint32_t> new_transaction = Transaction<uint32_t>(pch, " ", 0);
-    i++;
-    std::vector<uint32_t> closSetvec = *new_transaction.data();
-    TListByID[i % window_size]->insert(closSetvec.begin(), closSetvec.end());
-
-    std::set<uint32_t> closSetPart(closSetvec.begin(), closSetvec.end());
-    TList->add(closSetPart, i);
-
-    std::set<uint32_t>::iterator it1 = closSet.begin();
-    std::set<uint32_t>::iterator it2 = closSetPart.begin();
-
-    while ((it1 != closSet.end()) && (it2 != closSetPart.end())) {
-      if (*it1 < *it2) {
-        closSet.erase(it1++);
+      input.getline(s, 10000);
+      char* pch = strtok(s, " ");
+      Transaction<uint32_t> new_transaction = Transaction<uint32_t>(pch, " ", 0);
+      i++;
+      std::vector<uint32_t> closSetvec = *new_transaction.data();
+      TListByID[i % window_size]->insert(closSetvec.begin(), closSetvec.end());
+  
+      std::set<uint32_t> closSetPart(closSetvec.begin(), closSetvec.end());
+      TList->add(closSetPart, i);
+  
+      std::set<uint32_t>::iterator it1 = closSet.begin();
+      std::set<uint32_t>::iterator it2 = closSetPart.begin();
+  
+      while ((it1 != closSet.end()) && (it2 != closSetPart.end())) {
+          if (*it1 < *it2) {
+              closSet.erase(it1++);
+          }
+          else if (*it2 < *it1) {
+              ++it2;
+          }
+          else {
+              ++it1;
+              ++it2;
+          }
       }
-      else if (*it2 < *it1) {
-        ++it2;
-      }
-      else {
-        ++it1;
-        ++it2;
-      }
-    }
-    closSet.erase(it1, closSet.end());
-
+      closSet.erase(it1, closSet.end());
   }
-
-
+  
   ClosedIS EmptyClos(closSet, minSupp, &ClosureList);
   GenNode* root = new GenNode(1 << 31, nullptr, &EmptyClos);
   while (input.getline(s, 10000)) {
-    i++;
-
-
-    if (i == 121) {
-        i++; i--;
-    }
-
-    char* pch = strtok(s, " ");
-    /*
-    sanityCheck(root);
-    for (std::multimap<uint32_t, ClosedIS*>::iterator closIT = ClosureList.begin(); closIT != ClosureList.end(); ++closIT) {
-        ClosedIS* clos = closIT->second;
-        sanityCheck_full(clos, TList);
-    }
-    */
-    Transaction<uint32_t> new_transaction = Transaction<uint32_t>(pch, " ", 0);
-    std::vector<uint32_t> t_nVec = *new_transaction.data();
-
-    std::set<uint32_t> t_n(t_nVec.begin(), t_nVec.end());
-
-    Addition(t_n, i, root, TList, &ClosureList);
-
-
-    if (i > window_size) {
-        Deletion(*TListByID[i% window_size], i- window_size, root, TList, &ClosureList);
-    }
-
-    TListByID[i % window_size]->clear();
-    TListByID[i % window_size]->insert(t_n.begin(), t_n.end());
-
-
-    if (i % 100 == 0) {
-      std::cout << i << " transactions processed" << std::endl;
-    }
-    if (i % 500 == 0) {
-      auto stop = std::chrono::high_resolution_clock::now();
-      std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() << " milliseconds elapsed between start and current transaction" << std::endl;
-    }
-    if (i == exitAt) {
-      break;
-    }
-  }
-  /*
-  bool removeEnd = true;
-  if (removeEnd) {
-      std::cout << "removing...\n";
-      uint32_t imax = i + windowSize - minSupp;
-      while (i++ < imax) {
-          Deletion(*TListByID[i % windowSize], i - windowSize, root, TList, &ClosureList);
-          if ((imax - i) % 100 == 0) {
-              std::cout << imax - i << " transactions left\n";
-          }
+      i++;
+      if (i == 121) {
+          i++; i--;
       }
-  }*/
-
-
+      char* pch = strtok(s, " ");
+      Transaction<uint32_t> new_transaction = Transaction<uint32_t>(pch, " ", 0);
+      std::vector<uint32_t> t_nVec = *new_transaction.data();
+      std::set<uint32_t> t_n(t_nVec.begin(), t_nVec.end());
+  
+      Addition(t_n, i, root, TList, &ClosureList);
+  
+      if (i > window_size) {
+          Deletion(*TListByID[i % window_size], i - window_size, root, TList, &ClosureList);
+      }
+  
+      TListByID[i % window_size]->clear();
+      TListByID[i % window_size]->insert(t_n.begin(), t_n.end());
+  
+      if (i % 100 == 0) {
+          std::cout << i << " transactions processed" << std::endl;
+      }
+      if (i % 500 == 0) {
+          auto stop = std::chrono::high_resolution_clock::now();
+          std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() << " milliseconds elapsed between start and current transaction" << std::endl;
+      }
+      if (i == exitAt) {
+          break;
+      }
+  }
+  
+  std::vector<EquivClass*> lattice;
+  buildMinGenLattice(FMG_K, lattice, TList);
+  
+  // Write rules to rules.txt
+  std::ofstream rules_out("../rules.txt");
+  if (!rules_out.is_open()) {
+      std::cerr << "Failed to open rules.txt for writing" << std::endl;
+      return 1;
+  }
+  rules_out << "=== Exact Rules (ER) ===\n";
+  extractER(ClosureList, rules_out);
+  rules_out << "\n=== Aproximative Rules (AR) ===\n";
+  extractAR(lattice, TList, minconf, rules_out);
+  rules_out.close();
+  
   std::cout << "Displaying all found generators as of transaction " << i << " :\n";
-
-
-
+  
   for (std::map<uint32_t, std::set<uint32_t>*>::iterator oo = TList->TransactionList.begin(); oo != TList->TransactionList.end(); ++oo) {
-    delete oo->second;
+      delete oo->second;
   }
   TList->TransactionList.clear();
   delete TList;
-
+  
   for (uint32_t k = 0; k < window_size; k++) {
-    delete TListByID[k];
+      delete TListByID[k];
   }
-
-
-  //printAllClosuresWithGensTM(ClosureList, output_cis_gen);
-    if (output_cis_gen) {
+  
+  if (output_cis_gen) {
       std::ofstream f;
       f.open(output_cis_gen);
-      //printAllGens(root, f);
       printAllClosuresWithGensTM(ClosureList, f);
       f.close();
-    }
-    //"./output-cis-gens.txt"
-    //printAllClosuresWithGens(ClosureList);
-    std::cout << "Total number of generators: " << totalGens << "\n";
-    
-    // Extract generic rules
-    std::vector<GenericRule> rules = extractGenericRules(&ClosureList, TList);
-    
-    // Output rules
-    std::cout << "\nGeneric Rules:\n";
-    for (const auto& rule : rules) {
-        std::cout << "Rule: {";
-        for (auto item : rule.antecedent) std::cout << item << " ";
-        std::cout << "} => {";
-        for (auto item : rule.consequent) std::cout << item << " ";
-        std::cout << "} (sup=" << rule.support << ", conf=" << rule.confidence << ")\n";
-    }
-    //printClosureOrder(ClosureList);
-
-    if (output_order) {
+  }
+  std::cout << "Total number of generators: " << totalGens << "\n";
+  
+  if (output_order) {
       std::ofstream f2;
       f2.open(output_order);
       printClosureOrderTM(ClosureList, f2);
       f2.close();
-    }
-    //printClosureOrder(ClosureList);
-
-
-    //clean CIs
-    releaseClosures(ClosureList);
-    // clean generators
-    releaseAllGens(root);
-
-    return 0;
+  }
+  
+  for (auto ec : lattice) {
+      delete ec->aproximative->immediate_succs;
+      delete ec;
+  }
+  FMG_K.clear();
+  
+  releaseClosures(ClosureList);
+  releaseAllGens(root);
+  
+  return 0;
 }

@@ -480,7 +480,7 @@ int main(int argc, char** argv)
     std::cout << "Total number of generators: " << totalGens << "\n";
     
     // Extract generic rules
-    std::vector<GenericRule> rules = extractGenericRules(&ClosureList);
+    std::vector<GenericRule> rules = extractGenericRules(&ClosureList, TList);
     
     // Output rules
     std::cout << "\nGeneric Rules:\n";

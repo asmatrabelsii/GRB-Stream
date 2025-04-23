@@ -72,6 +72,7 @@ ClosedIS* findCI(std::set<uint32_t> itemSet, std::multimap<uint32_t, ClosedIS*>*
 int CISSum(std::set<uint32_t> Itemset);
 
 std::ostream& operator<<(std::ostream& os, ClosedIS CI);
+std::vector<GenericRule> extractGenericRules(std::multimap<uint32_t, ClosedIS*>* ClosureList, TIDList* tidlist);
 
 struct GenNode {
 	uint32_t item;

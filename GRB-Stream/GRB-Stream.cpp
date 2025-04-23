@@ -1444,7 +1444,7 @@
 			}
 			return os;
 		}
-std::vector<GenericRule> extractGenericRules(std::multimap<uint32_t, ClosedIS*>* ClosureList) {
+std::vector<GenericRule> extractGenericRules(std::multimap<uint32_t, ClosedIS*>* ClosureList, TIDList* tidlist) {
     std::vector<GenericRule> rules;
     
     // Start from bottom element (empty set)
@@ -1476,7 +1476,7 @@ std::vector<GenericRule> extractGenericRules(std::multimap<uint32_t, ClosedIS*>*
                 rule.consequent = closure->itemset;
                 rule.support = (float)closure->support / NODE_ID;
                 rule.confidence = (float)closure->support / 
-                                TList->supp_from_tidlist(genItems);
+                                tidlist->supp_from_tidlist(genItems);
                 
                 if (rule.confidence >= minConf) {
                     rules.push_back(rule);

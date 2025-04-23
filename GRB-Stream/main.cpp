@@ -1,4 +1,4 @@
-#include "FGC-Stream.h"
+#include "GRB-Stream.h"
 #include "Transaction.h"
 #include <iostream>
 #include <fstream>

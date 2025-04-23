@@ -1,1 +1,1 @@
-# FGC-Stream# GRB-Stream
+# GRB-Stream

@@ -10,12 +10,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "mkdir -p Datasets Outputs"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "echo \"1 2 3\" > Datasets/in.txt"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd GRB-Stream && g++ -g -Wall *.cpp -o GRB-Stream && ./GRB-Stream \"../Datasets/in.txt\" 3 0.5 \"../Outputs/outCI.txt\" 1000 \"../Outputs/outOr.txt\" \"../Outputs/rules.txt\""
+args = "cd GRB-Stream && g++ -g -Wall *.cpp -o GRB-Stream && ./GRB-Stream \"../Datasets/in.txt\" 3 1000 \"../outCI.txt\" 1000 \"../outOr.txt\""

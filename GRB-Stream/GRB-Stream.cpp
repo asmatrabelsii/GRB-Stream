@@ -1444,3 +1444,46 @@
 			}
 			return os;
 		}
+std::vector<GenericRule> extractGenericRules(std::multimap<uint32_t, ClosedIS*>* ClosureList) {
+    std::vector<GenericRule> rules;
+    
+    // Start from bottom element (empty set)
+    std::set<uint32_t> emptySet;
+    ClosedIS* bottomClosure = findCI(emptySet, ClosureList);
+    
+    if (!bottomClosure->itemset.empty()) {
+        // Extract exact rule from empty set to its closure
+        GenericRule exactRule;
+        exactRule.antecedent = emptySet;
+        exactRule.consequent = bottomClosure->itemset;
+        exactRule.support = (float)bottomClosure->support / NODE_ID;
+        exactRule.confidence = 1.0f;
+        rules.push_back(exactRule);
+    }
+
+    // Extract approximate rules by traversing the lattice
+    for (auto& entry : *ClosureList) {
+        ClosedIS* closure = entry.second;
+        
+        // For each minimal generator
+        for (auto& gen : closure->gens) {
+            std::set<uint32_t> genItems = gen->items();
+            
+            // Create rule from generator to closure
+            if (genItems != closure->itemset) {
+                GenericRule rule;
+                rule.antecedent = genItems;
+                rule.consequent = closure->itemset;
+                rule.support = (float)closure->support / NODE_ID;
+                rule.confidence = (float)closure->support / 
+                                TList->supp_from_tidlist(genItems);
+                
+                if (rule.confidence >= minConf) {
+                    rules.push_back(rule);
+                }
+            }
+        }
+    }
+    
+    return rules;
+}

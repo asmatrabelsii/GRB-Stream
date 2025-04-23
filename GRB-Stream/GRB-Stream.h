@@ -18,9 +18,17 @@ struct MinNode;
 
 extern uint32_t NODE_ID;
 extern uint32_t minSupp;
+extern float minConf;
 extern int testedJp;
 extern float actgen;
 extern bool extratext;
+
+struct GenericRule {
+    std::set<uint32_t> antecedent;
+    std::set<uint32_t> consequent;
+    float support;
+    float confidence;
+};
 
 //#define USE_INT_BITSETS
 

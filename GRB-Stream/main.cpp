@@ -478,6 +478,19 @@ int main(int argc, char** argv)
     //"./output-cis-gens.txt"
     //printAllClosuresWithGens(ClosureList);
     std::cout << "Total number of generators: " << totalGens << "\n";
+    
+    // Extract generic rules
+    std::vector<GenericRule> rules = extractGenericRules(&ClosureList);
+    
+    // Output rules
+    std::cout << "\nGeneric Rules:\n";
+    for (const auto& rule : rules) {
+        std::cout << "Rule: {";
+        for (auto item : rule.antecedent) std::cout << item << " ";
+        std::cout << "} => {";
+        for (auto item : rule.consequent) std::cout << item << " ";
+        std::cout << "} (sup=" << rule.support << ", conf=" << rule.confidence << ")\n";
+    }
     //printClosureOrder(ClosureList);
 
     if (output_order) {

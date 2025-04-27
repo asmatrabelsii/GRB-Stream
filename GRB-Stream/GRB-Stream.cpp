@@ -1263,154 +1263,170 @@ void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lat
 	std::vector<GenNode*> sorted_FMG; 
 	for (auto g : FMG_K) sorted_FMG.push_back(g); 
 	std::sort(sorted_FMG.begin(), sorted_FMG.end(), [](GenNode* a, GenNode* b) {
-			if (a->support != b->support) return a->support > b->support; 
-			return a->items().size() < b->items().size(); 
+		if (a->support != b->support) return a->support > b->support; 
+		return a->items().size() < b->items().size(); 
 	}); 
+	// Build lattice
 	std::map<std::set<uint32_t>, EquivClass*> equiv_map; // Map itemsets to classes 
 	for (auto g : sorted_FMG) { 
-			g->immediate_succs = new std::set<GenNode*>;
-			std::set<uint32_t> g_items = g->items(); 
-			uint32_t k = g_items.size(); // Handle k = 0 (empty set) 
-			if (k == 0) { 
-					EquivClass* ec = new EquivClass{g, {g}, {}, g->support}; 
-					lattice.push_back(ec); 
-					equiv_map[g_items] = ec; 
-					continue; 
-			} 
-			// Get (k-1)-subsets 
-			std::vector<std::set<uint32_t>> subsets; 
-			for (auto item : g_items) { 
-					std::set<uint32_t> subset = g_items; 
-					subset.erase(item); 
-					subsets.push_back(subset); 
-			} 
-			// Find or create equivalence class 
-			EquivClass* g_class = nullptr; 
+		g->immediate_succs = new std::set<GenNode*>;
+		std::set<uint32_t> g_items = g->items(); 
+		uint32_t k = g_items.size(); 
+		
+		// Handle k = 0 (empty set) 
+		if (k == 0) { 
+			EquivClass* ec = new EquivClass{g, {g}, {}, g->support}; 
+			lattice.push_back(ec); 
+			equiv_map[g_items] = ec; 
+			continue; 
+		} 
+		
+		// Get (k-1)-subsets 
+		std::vector<std::set<uint32_t>> subsets; 
+		for (auto item : g_items) { 
+			std::set<uint32_t> subset = g_items; 
+			subset.erase(item); 
+			subsets.push_back(subset); 
+		} 
+		
+		// Find or create equivalence class 
+		EquivClass* g_class = nullptr; 
 			for (auto subset : subsets) { 
-					if (equiv_map.count(subset)) { 
-							EquivClass* parent_ec = equiv_map[subset]; 
-							std::set<GenNode*>& L = *parent_ec->representative->immediate_succs; 
-							if (L.empty()) { 
-									L.insert(g); 
+				if (equiv_map.count(subset)) { 
+					EquivClass* parent_ec = equiv_map[subset]; 
+					std::set<GenNode*>& L = *parent_ec->representative->immediate_succs; 
+					if (L.empty()) { 
+						L.insert(g); 
+						if (!g_class) { 
+							g_class = new EquivClass{g, {g}, {}, g->support}; 
+							equiv_map[g_items] = g_class; 
+						} 
+					} else {
+							bool added = false; 
+							for (auto succ : L) { 
+								std::set<uint32_t> succ_items = succ->items(); 
+								std::set<uint32_t> union_set; 
+								std::set_union(g_items.begin(), g_items.end(), succ_items.begin(), succ_items.end(), std::inserter(union_set, union_set.begin())); 
+								uint32_t union_supp = static_cast<uint32_t>(TList->supp_from_tidlist(union_set)); // Fixed: Use TIDList and cast to uint32_t
+								if (g->support == succ->support && g->support == union_supp) { 
+									// Same equivalence class (Proposition 2a) 
+									g_class = equiv_map[succ_items]; 
+									g_class->members.insert(g); 
+									manageEquivClass(g, g_class->representative, lattice); 
+									added = true; 
+									break; 
+								} else if (g->support < succ->support && g->support == union_supp) { 
+									// g is a successor of succ (Proposition 2b) 
 									if (!g_class) { 
-											g_class = new EquivClass{g, {g}, {}, g->support}; 
-											equiv_map[g_items] = g_class; 
+										g_class = new EquivClass{g, {g}, {}, g->support}; 
+										equiv_map[g_items] = g_class; 
 									} 
-							} else {
-									bool added = false; 
-									for (auto succ : L) { 
-											std::set<uint32_t> succ_items = succ->items(); 
-											std::set<uint32_t> union_set; 
-											std::set_union(g_items.begin(), g_items.end(), succ_items.begin(), succ_items.end(), std::inserter(union_set, union_set.begin())); 
-											uint32_t union_supp = static_cast<uint32_t>(TList->supp_from_tidlist(union_set)); // Fixed: Use TIDList and cast to uint32_t
-											if (g->support == succ->support && g->support == union_supp) { 
-													// Same equivalence class (Proposition 2a) 
-													g_class = equiv_map[succ_items]; 
-													g_class->members.insert(g); 
-													manageEquivClass(g, g_class->representative, lattice); 
-													added = true; 
-													break; 
-											} else if (g->support < succ->support && g->support == union_supp) { 
-													// g is a successor of succ (Proposition 2b) 
-													if (!g_class) { 
-															g_class = new EquivClass{g, {g}, {}, g->support}; 
-															equiv_map[g_items] = g_class; 
-													} 
-													parent_ec->immediate_succs.insert(g_class); 
-													g->immediate_succs->insert(succ); 
-													added = true; 
-											}
-									} 
-									if (!added) { 
-											if (!g_class) { 
-													g_class = new EquivClass{g, {g}, {}, g->support}; 
-													equiv_map[g_items] = g_class; 
-											} 
-											L.insert(g); 
-											parent_ec->immediate_succs.insert(g_class); 
-									} 
+									parent_ec->immediate_succs.insert(g_class); 
+									g->immediate_succs->insert(succ); 
+									added = true; 
+								}
 							} 
-					} 
+							if (!added) { 
+								if (!g_class) { 
+									g_class = new EquivClass{g, {g}, {}, g->support}; 
+									equiv_map[g_items] = g_class; 
+								} 
+								L.insert(g); 
+								parent_ec->immediate_succs.insert(g_class); 
+							} 
+						} 
+				} 
 			} 
 			if (!g_class) { 
-					g_class = new EquivClass{g, {g}, {}, g->support}; 
-					equiv_map[g_items] = g_class; 
-					lattice.push_back(g_class); 
+				g_class = new EquivClass{g, {g}, {}, g->support}; 
+				equiv_map[g_items] = g_class; 
+				lattice.push_back(g_class); 
 			} 
 	} 
 }
 
 void manageEquivClass(GenNode* g, GenNode* R, std::vector<EquivClass*>& lattice) { 
 	for (auto ec : lattice) { 
-			auto& succs = *ec->representative->immediate_succs; 
-			if (succs.count(g)) { 
-					succs.erase(g); 
-					succs.insert(R); 
-			} 
+		auto& succs = *ec->representative->immediate_succs; 
+		if (succs.count(g)) { 
+			succs.erase(g); 
+			succs.insert(R); 
+		} 
 	} 
 }
 
 void extractER(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ostream& out) { 
 	for (auto& entry : ClosureList) { 
-			ClosedIS* f = entry.second; 
-			for (auto g : f->gens) { 
-					std::set<uint32_t> g_items = g->items(); 
-					if (g_items != f->itemset) { // g != f 
-							std::set<uint32_t> consequent; 
-							std::set_difference(f->itemset.begin(), f->itemset.end(), g_items.begin(), g_items.end(),
-							std::inserter(consequent, consequent.end())); 
-							out << "Rule: "; 
-							for (auto i : g_items) out << i << " "; 
-							out << "=> "; 
-							for (auto i : consequent) out << i << " "; 
-							out << "(support: " << f->support << ", confidence: 1.0)\n"; 
-					}
+		ClosedIS* f = entry.second; 
+		for (auto g : f->gens) { 
+			std::set<uint32_t> g_items = g->items(); 
+			if (g_items != f->itemset) { // g != f 
+				std::set<uint32_t> consequent; 
+				std::set_difference(f->itemset.begin(), f->itemset.end(), g_items.begin(), g_items.end(),
+				std::inserter(consequent, consequent.end())); 
+				out << "Rule: "; 
+				for (auto i : g_items) out << i << " "; 
+				out << "=> "; 
+				for (auto i : consequent) out << i << " "; 
+				out << "(support: " << f->support << ", confidence: 1.0)\n"; 
 			}
+		}
 	}
 }
 
-void extractAR(std::vector<EquivClass*>& lattice, TIDList* TList, float minconf, std::ostream& out) { 
-	std::map<EquivClass*, std::set<uint32_t>> closures; 
-	std::queue<EquivClass*> q; 
-	for (auto ec : lattice) { 
-			if (ec->representative->items().empty()) {
-					q.push(ec); 
-					closures[ec] = TList->getISTL(ec->representative->items()); 
-					break; 
-			} 
-	} 
-	while (!q.empty()) { 
-			EquivClass* curr = q.front(); 
-			q.pop(); 
-			std::set<uint32_t> curr_closure = closures[curr]; 
-			if (curr->representative->items().empty() && !curr_closure.empty()) { 
-					out << "Rule: {} => "; 
-					for (auto i : curr_closure) out << i << " "; 
-					out << "(support: " << curr->support << ", confidence: 1.0)\n"; 
-			} 
-			for (auto succ_ec : curr->immediate_succs) { 
-					std::set<uint32_t> succ_items = succ_ec->representative->items(); 
-					std::set<uint32_t> f; 
-					for (auto g : succ_ec->members) { 
-							std::set<uint32_t> g_items = g->items(); 
-							std::set_union(f.begin(), f.end(), g_items.begin(), g_items.end(), std::inserter(f, f.begin()));
-					} 
-					std::set_union(f.begin(), f.end(), curr_closure.begin(), curr_closure.end(), std::inserter(f, f.begin()));
-					closures[succ_ec] = f; 
-					std::set<uint32_t> consequent; 
-					std::set_difference(f.begin(), f.end(), succ_items.begin(), succ_items.end(),
-															std::inserter(consequent, consequent.end())); 
-					float conf = (float)TList->supp_from_tidlist(f) / succ_ec->support; 
-					if (conf >= minconf && !consequent.empty()) { 
-							out << "Rule: "; 
-							for (auto i : succ_items) out << i << " "; 
-							out << "=> "; 
-							for (auto i : consequent) out << i << " "; 
-							out << "(support: " << TList->supp_from_tidlist(f) << ", confidence: " << conf << ")\n"; 
-					} 
-					q.push(succ_ec); 
-			} 
-	} 
+void extractAR(std::vector<EquivClass*>& lattice, TIDList* TList, float minconf, std::ostream& out) {
+	// Step 1: Identify FCIK (frequent closed itemsets) and FMGK (frequent minimal generators)
+	std::set<std::set<uint32_t>> FCIK; // Set of frequent closed itemsets
+	std::map<EquivClass*, std::set<uint32_t>> closures; // Maps generators to their closures
+
+	// First pass: identify closed itemsets and compute closures for all equivalence classes
+	for (auto ec : lattice) {
+			// Compute closure for each equivalence class
+			std::set<uint32_t> generator = ec->representative->items();
+			std::set<uint32_t> closure = TList->getISTL(generator); // Get closed itemset
+			closures[ec] = closure;
+
+			// Add to FCIK (frequent closed itemsets)
+			FCIK.insert(closure);
+	}
+
+	// Second pass: generate rules according to the definition
+	// RI = {R | R: g ⇒ (f - g) | f ∈ FCIK and g ∈ FMGK and g ≺ f and Conf(R) ≥ minconf}
+	for (auto ec : lattice) {
+		std::set<uint32_t> g = ec->representative->items(); // Minimal generator (g ∈ FMGK)
+
+		// For each closed itemset f in FCIK
+		for (const auto& f : FCIK) {
+			// Check if g ≺ f (g is a subset of f)
+			bool isSubset = std::includes(f.begin(), f.end(), g.begin(), g.end());
+	
+			if (isSubset && g != f) { // Ensure g is a proper subset of f
+				// Calculate (f - g) as the consequent
+				std::set<uint32_t> consequent;
+				std::set_difference(f.begin(), f.end(), g.begin(), g.end(),
+				 std::inserter(consequent, consequent.end()));
+	
+				// Calculate confidence
+				float conf = (float)TList->supp_from_tidlist(f) / TList->supp_from_tidlist(g);
+	
+				// Check confidence threshold
+				if (conf >= minconf && !consequent.empty()) {
+					// Output the rule g ⇒ (f - g)
+					out << "Rule: ";
+					if (g.empty()) {
+						out << "{} => ";
+					} else {
+						for (auto i : g) out << i << " ";
+							out << "=> ";
+					}
+	
+					for (auto i : consequent) out << i << " ";
+						out << "(support: " << TList->supp_from_tidlist(f) 
+						<< ", confidence: " << conf << ")\n";
+				}
+			}
+		}
+	}
 }
 	
 GenNode* genLookUp(std::set<uint32_t> iset, GenNode* root) { // Will return nullptr if itemset is not in trie

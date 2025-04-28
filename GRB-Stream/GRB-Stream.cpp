@@ -38,7 +38,9 @@ void descend(GenNode* n, std::set<uint32_t> X, std::set<uint32_t> t_n, std::mult
 		}
 		//breaks here
 		closure->gens.insert(n);
+		FMG_K.insert(n);
 		n->clos->gens.erase(n);
+		FMG_K.erase(n);
 		std::set<uint32_t> face;
 		std::set_difference(n->clos->itemset.begin(), n->clos->itemset.end(), iset.begin(), iset.end(), std::inserter(face, face.end()));
 		for (auto item : face) {
@@ -1532,13 +1534,15 @@ ClosedIS::ClosedIS(std::set<uint32_t> itemset, uint32_t support, std::multimap<u
 	ClosureList->insert(std::make_pair(CISSum(itemset), this));
 	this->preds = new std::multimap<uint32_t, ClosedIS*>;
 	this->succ = new std::multimap<uint32_t, ClosedIS*>;
-	for (auto gen : gens) { 
+	this->support = support;
+	
+	// Add any existing generators to FMG_K
+	for (GenNode* gen : this->gens) {
 		gen->support = support;
-		FMG_K.insert(gen); 
+		FMG_K.insert(gen);
 	}
-
+	
 	this->deleted = false;
-
 };
 
 void TIDList::add(std::set<uint32_t> t_n, uint32_t n) {

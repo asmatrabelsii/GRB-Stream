@@ -53,7 +53,7 @@ void closureReset(std::multimap<uint32_t, ClosedIS*>* ClosureList);
 ClosedIS* findCI(std::set<uint32_t> itemSet, std::multimap<uint32_t, ClosedIS*>* ClosureList);
 int CISSum(std::set<uint32_t> Itemset);
 std::ostream& operator<<(std::ostream& os, ClosedIS CI);
-void buildMinGenLattice(std::multimap<uint32_t, ClosedIS*>&, std::vector<EquivClass*>&, TIDList*, std::ostream&);
+void buildMinGenLattice(std::set<GenNode*>&, std::vector<EquivClass*>&, TIDList*);
 void manageEquivClass(GenNode*, GenNode*, std::vector<EquivClass*>&);
 void extractER(std::multimap<uint32_t, ClosedIS*>&, std::ostream&);
 void extractAR(std::vector<EquivClass*>&, TIDList*, float, std::ostream&);

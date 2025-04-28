@@ -39,8 +39,6 @@ void descend(GenNode* n, std::set<uint32_t> X, std::set<uint32_t> t_n, std::mult
 		//breaks here
 		closure->gens.insert(n);
 		n->clos->gens.erase(n);
-		n->clos = closure;
-		FMG_K.insert(n);
 		std::set<uint32_t> face;
 		std::set_difference(n->clos->itemset.begin(), n->clos->itemset.end(), iset.begin(), iset.end(), std::inserter(face, face.end()));
 		for (auto item : face) {
@@ -1260,29 +1258,14 @@ void closureReset(std::multimap<uint32_t, ClosedIS*>* ClosureList) {
 	}
 }
 
-void buildMinGenLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::vector<EquivClass*>& lattice, TIDList* TList, std::ostream& out) { 
-    out << "=== Minimal Generator Lattice ===\n\n";
-    // Collect and sort all generators from FMG_K
-    std::vector<GenNode*> sorted_FMG(FMG_K.begin(), FMG_K.end());
-    if (sorted_FMG.empty()) {
-        // If FMG_K is empty, collect from ClosureList
-        for (const auto& entry : ClosureList) {
-            ClosedIS* cis = entry.second;
-            for (auto g : cis->gens) {
-                sorted_FMG.push_back(g);
-            }
-        }
-    }
-        ClosedIS* cis = entry.second;
-        for (auto g : cis->gens) {
-            sorted_FMG.push_back(g);
-        }
-    }
-    
-    std::sort(sorted_FMG.begin(), sorted_FMG.end(), [](GenNode* a, GenNode* b) {
-        if (a->support != b->support) return a->support > b->support;
-        return a->items().size() < b->items().size();
-    }); 
+void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lattice, TIDList* TList) { 
+	// Sort FMG_K by decreasing support and increasing size 
+	std::vector<GenNode*> sorted_FMG; 
+	for (auto g : FMG_K) sorted_FMG.push_back(g); 
+	std::sort(sorted_FMG.begin(), sorted_FMG.end(), [](GenNode* a, GenNode* b) {
+		if (a->support != b->support) return a->support > b->support; 
+		return a->items().size() < b->items().size(); 
+	}); 
 	// Build lattice
 	std::map<std::set<uint32_t>, EquivClass*> equiv_map; // Map itemsets to classes 
 	for (auto g : sorted_FMG) { 
@@ -1359,27 +1342,7 @@ void buildMinGenLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ve
 				equiv_map[g_items] = g_class; 
 				lattice.push_back(g_class); 
 			} 
-	}
-	
-	// Write lattice content to output file
-	for (const auto& ec : lattice) {
-		out << "Equivalence Class (support: " << ec->support << "):\n";
-		out << "Representative: { ";
-		for (const auto& item : ec->representative->items()) {
-			out << item << " ";
-		}
-		out << "}\n";
-		
-		out << "Members: ";
-		for (const auto& member : ec->members) {
-			out << "{ ";
-			for (const auto& item : member->items()) {
-				out << item << " ";
-			}
-			out << "} ";
-		}
-		out << "\n\n";
-	}
+	} 
 }
 
 void manageEquivClass(GenNode* g, GenNode* R, std::vector<EquivClass*>& lattice) { 
@@ -1542,15 +1505,13 @@ ClosedIS::ClosedIS(std::set<uint32_t> itemset, uint32_t support, std::multimap<u
 	ClosureList->insert(std::make_pair(CISSum(itemset), this));
 	this->preds = new std::multimap<uint32_t, ClosedIS*>;
 	this->succ = new std::multimap<uint32_t, ClosedIS*>;
-	this->support = support;
-	
-	// Add any existing generators to FMG_K
-	for (GenNode* gen : this->gens) {
+	for (auto gen : gens) { 
 		gen->support = support;
-		FMG_K.insert(gen);
+		FMG_K.insert(gen); 
 	}
-	
+
 	this->deleted = false;
+
 };
 
 void TIDList::add(std::set<uint32_t> t_n, uint32_t n) {

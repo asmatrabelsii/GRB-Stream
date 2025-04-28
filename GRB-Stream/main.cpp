@@ -431,13 +431,7 @@ int main(int argc, char** argv)
   }
   
   std::vector<EquivClass*> lattice;
-  std::ofstream lattice_out("../lattice.txt");
-  if (!lattice_out.is_open()) {
-      std::cerr << "Failed to open lattice.txt for writing" << std::endl;
-      return 1;
-  }
-  buildMinGenLattice(ClosureList, lattice, TList, lattice_out);
-  lattice_out.close();
+  buildMinGenLattice(FMG_K, lattice, TList);
   
   // Write rules to rules.txt
   std::ofstream rules_out("../rules.txt");

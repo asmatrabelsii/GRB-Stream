@@ -38,9 +38,9 @@ void descend(GenNode* n, std::set<uint32_t> X, std::set<uint32_t> t_n, std::mult
 		}
 		//breaks here
 		closure->gens.insert(n);
-		FMG_K.insert(n);
 		n->clos->gens.erase(n);
-		FMG_K.erase(n);
+		n->clos = closure;
+		FMG_K.insert(n);
 		std::set<uint32_t> face;
 		std::set_difference(n->clos->itemset.begin(), n->clos->itemset.end(), iset.begin(), iset.end(), std::inserter(face, face.end()));
 		for (auto item : face) {
@@ -1262,9 +1262,17 @@ void closureReset(std::multimap<uint32_t, ClosedIS*>* ClosureList) {
 
 void buildMinGenLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::vector<EquivClass*>& lattice, TIDList* TList, std::ostream& out) { 
     out << "=== Minimal Generator Lattice ===\n\n";
-    // Collect and sort all generators from ClosureList
-    std::vector<GenNode*> sorted_FMG;
-    for (const auto& entry : ClosureList) {
+    // Collect and sort all generators from FMG_K
+    std::vector<GenNode*> sorted_FMG(FMG_K.begin(), FMG_K.end());
+    if (sorted_FMG.empty()) {
+        // If FMG_K is empty, collect from ClosureList
+        for (const auto& entry : ClosureList) {
+            ClosedIS* cis = entry.second;
+            for (auto g : cis->gens) {
+                sorted_FMG.push_back(g);
+            }
+        }
+    }
         ClosedIS* cis = entry.second;
         for (auto g : cis->gens) {
             sorted_FMG.push_back(g);

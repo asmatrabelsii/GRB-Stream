@@ -430,7 +430,7 @@ std::set<std::set<uint32_t>*> compute_preds_exp(ClosedIS* clos) {
 		generators->push_back(itemsV);
 	}
 
-	vector<set<uint32_t>>* _faces = new vector<set<uint32_t>>;
+	vector<set<uint32_t>>* _faces = new vector<set<uint32_t>>();
 	vector<MinNode*>* faces_as_trie_nodes = new vector<MinNode*>();
 
 	std::vector<uint32_t> singletons = std::vector<uint32_t>();
@@ -621,10 +621,10 @@ std::set<std::set<uint32_t>*> compute_preds_exp(ClosedIS* clos) {
 	//std::cout << _faces->size() << " from " << _generators->size() << std::endl;
 	std::set<std::set<uint32_t>*> preds;
 	for (vector<set<uint32_t>>::iterator face = _faces->begin(); face != _faces->end(); ++face) {
-		std::set<uint32_t>* pred = new std::set<uint32_t>;
+		std::set<uint32_t>* pred = new std::set<uint32_t>();
 		std::set_difference(clos->itemset.begin(), clos->itemset.end(), face->begin(), face->end(),
 			std::inserter(*pred, pred->end()));
-			/*for (std::vector<uint32_t>::iterator s = singletons.begin(); s != singletons.end(); ++s) {
+			/*for (std::vector<uint32_t>::iterator s = singletons.begin(); s != singletons.end(); ++ss) {
 				vector<uint32_t>* const f = &generators->at(*s);
 				pred->erase(f->at(0));
 			}*/
@@ -854,7 +854,7 @@ set<set<uint32_t>*> compute_preds_efficient(ClosedIS* clos) {
 		_generators.push_back(itemsV);
 	}
 
-	vector<set<uint32_t>>* _faces = new vector<set<uint32_t>>;
+	vector<set<uint32_t>>* _faces = new vector<set<uint32_t>>();
 	vector<set<uint32_t>> faceTemp;
 
 	// 1 - Create mono-gen face
@@ -997,7 +997,7 @@ set<set<uint32_t>*> compute_preds_efficient(ClosedIS* clos) {
 
 	std::set<std::set<uint32_t>*> preds;
 	for (std::vector<std::set<uint32_t>>::iterator face = _faces->begin(); face != _faces->end(); ++face) {
-		std::set<uint32_t>* pred = new std::set<uint32_t>;
+		std::set<uint32_t>* pred = new std::set<uint32_t>();
 		std::set_difference(clos->itemset.begin(), clos->itemset.end(), face->begin(), face->end(),
 			std::inserter(*pred, pred->end()));
 		preds.insert(pred);
@@ -1272,7 +1272,7 @@ void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lat
 		g->immediate_succs = new std::set<GenNode*>;
 		std::set<uint32_t> g_items = g->items(); 
 		uint32_t k = g_items.size(); 
-		
+
 		// Handle k = 0 (empty set) 
 		if (k == 0) { 
 			EquivClass* ec = new EquivClass{g, {g}, {}, g->support}; 
@@ -1280,7 +1280,7 @@ void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lat
 			equiv_map[g_items] = ec; 
 			continue; 
 		} 
-		
+
 		// Get (k-1)-subsets 
 		std::vector<std::set<uint32_t>> subsets; 
 		for (auto item : g_items) { 
@@ -1288,7 +1288,7 @@ void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lat
 			subset.erase(item); 
 			subsets.push_back(subset); 
 		} 
-		
+
 		// Find or create equivalence class 
 		EquivClass* g_class = nullptr; 
 			for (auto subset : subsets) { 
@@ -1355,7 +1355,7 @@ void manageEquivClass(GenNode* g, GenNode* R, std::vector<EquivClass*>& lattice)
 	} 
 }
 
-void extractER(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ostream& out) { 
+void extractER(std::multimap<uint32_t, ClosedIS>& ClosureList, std::ostream& out) { 
 	for (auto& entry : ClosureList) { 
 		ClosedIS* f = entry.second; 
 		for (auto g : f->gens) { 
@@ -1399,16 +1399,16 @@ void extractAR(std::vector<EquivClass*>& lattice, TIDList* TList, float minconf,
 		for (const auto& f : FCIK) {
 			// Check if g ≺ f (g is a subset of f)
 			bool isSubset = std::includes(f.begin(), f.end(), g.begin(), g.end());
-	
+
 			if (isSubset && g != f) { // Ensure g is a proper subset of f
 				// Calculate (f - g) as the consequent
 				std::set<uint32_t> consequent;
 				std::set_difference(f.begin(), f.end(), g.begin(), g.end(),
 				 std::inserter(consequent, consequent.end()));
-	
+
 				// Calculate confidence
 				float conf = (float)TList->supp_from_tidlist(f) / TList->supp_from_tidlist(g);
-	
+
 				// Check confidence threshold
 				if (conf >= minconf && !consequent.empty()) {
 					// Output the rule g ⇒ (f - g)
@@ -1419,7 +1419,7 @@ void extractAR(std::vector<EquivClass*>& lattice, TIDList* TList, float minconf,
 						for (auto i : g) out << i << " ";
 							out << "=> ";
 					}
-	
+
 					for (auto i : consequent) out << i << " ";
 						out << "(support: " << TList->supp_from_tidlist(f) 
 						<< ", confidence: " << conf << ")\n";
@@ -1428,7 +1428,7 @@ void extractAR(std::vector<EquivClass*>& lattice, TIDList* TList, float minconf,
 		}
 	}
 }
-	
+
 GenNode* genLookUp(std::set<uint32_t> iset, GenNode* root) { // Will return nullptr if itemset is not in trie
 	GenNode* Node = root;
 	for (auto item : iset) {
@@ -1505,14 +1505,10 @@ ClosedIS::ClosedIS(std::set<uint32_t> itemset, uint32_t support, std::multimap<u
 	ClosureList->insert(std::make_pair(CISSum(itemset), this));
 	this->preds = new std::multimap<uint32_t, ClosedIS*>;
 	this->succ = new std::multimap<uint32_t, ClosedIS*>;
-	for (auto& entry : ClosureList) { 
-		ClosedIS* f = entry.second; 
-		for (auto gen : gens) { 
-			gen->support = support;
-			FMG_K.insert(gen); 
-		}
+	for (auto gen : gens) {
+		gen->support = support;
+		FMG_K.insert(gen);
 	}
-
 	this->deleted = false;
 
 };

@@ -1266,23 +1266,26 @@ void buildMinGenLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ve
     std::vector<GenNode*> sorted_FMG(FMG_K.begin(), FMG_K.end());
     if (sorted_FMG.empty()) {
         // If FMG_K is empty, collect from ClosureList
-        for (const auto& pair : ClosureList) {
-            ClosedIS* cis = pair.second;
+        for (const auto& entry : ClosureList) {
+            ClosedIS* cis = entry.second;
             for (auto g : cis->gens) {
                 sorted_FMG.push_back(g);
             }
         }
     }
+        ClosedIS* cis = entry.second;
+        for (auto g : cis->gens) {
+            sorted_FMG.push_back(g);
+        }
+    }
     
-    auto compare = [](GenNode* a, GenNode* b) {
+    std::sort(sorted_FMG.begin(), sorted_FMG.end(), [](GenNode* a, GenNode* b) {
         if (a->support != b->support) return a->support > b->support;
         return a->items().size() < b->items().size();
-    };
-    std::sort(sorted_FMG.begin(), sorted_FMG.end(), compare);
-
-    // Build lattice
-    std::map<std::set<uint32_t>, EquivClass*> equiv_map; // Map itemsets to classes 
-    for (auto g : sorted_FMG) { 
+    }); 
+	// Build lattice
+	std::map<std::set<uint32_t>, EquivClass*> equiv_map; // Map itemsets to classes 
+	for (auto g : sorted_FMG) { 
 		g->immediate_succs = new std::set<GenNode*>;
 		std::set<uint32_t> g_items = g->items(); 
 		uint32_t k = g_items.size(); 

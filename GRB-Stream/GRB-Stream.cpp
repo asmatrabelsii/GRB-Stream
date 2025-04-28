@@ -1258,14 +1258,21 @@ void closureReset(std::multimap<uint32_t, ClosedIS*>* ClosureList) {
 	}
 }
 
-void buildMinGenLattice(std::set<GenNode*>& FMG_K, std::vector<EquivClass*>& lattice, TIDList* TList) { 
-	// Sort FMG_K by decreasing support and increasing size 
-	std::vector<GenNode*> sorted_FMG; 
-	for (auto g : FMG_K) sorted_FMG.push_back(g); 
-	std::sort(sorted_FMG.begin(), sorted_FMG.end(), [](GenNode* a, GenNode* b) {
-		if (a->support != b->support) return a->support > b->support; 
-		return a->items().size() < b->items().size(); 
-	}); 
+void buildMinGenLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::vector<EquivClass*>& lattice, TIDList* TList, std::ostream& out) { 
+    out << "=== Minimal Generator Lattice ===\n";
+    // Collect and sort all generators from ClosureList
+    std::vector<GenNode*> sorted_FMG;
+    for (const auto& entry : ClosureList) {
+        ClosedIS* cis = entry.second;
+        for (auto g : cis->gens) {
+            sorted_FMG.push_back(g);
+        }
+    }
+    
+    std::sort(sorted_FMG.begin(), sorted_FMG.end(), [](GenNode* a, GenNode* b) {
+        if (a->support != b->support) return a->support > b->support;
+        return a->items().size() < b->items().size();
+    }); 
 	// Build lattice
 	std::map<std::set<uint32_t>, EquivClass*> equiv_map; // Map itemsets to classes 
 	for (auto g : sorted_FMG) { 

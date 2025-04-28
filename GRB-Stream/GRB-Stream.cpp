@@ -1505,9 +1505,12 @@ ClosedIS::ClosedIS(std::set<uint32_t> itemset, uint32_t support, std::multimap<u
 	ClosureList->insert(std::make_pair(CISSum(itemset), this));
 	this->preds = new std::multimap<uint32_t, ClosedIS*>;
 	this->succ = new std::multimap<uint32_t, ClosedIS*>;
-	for (auto gen : gens) { 
-		gen->support = support;
-		FMG_K.insert(gen); 
+	for (auto& entry : ClosureList) { 
+		ClosedIS* f = entry.second; 
+		for (auto gen : gens) { 
+			gen->support = support;
+			FMG_K.insert(gen); 
+		}
 	}
 
 	this->deleted = false;

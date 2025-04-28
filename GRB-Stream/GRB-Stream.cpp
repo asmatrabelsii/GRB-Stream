@@ -1259,7 +1259,7 @@ void closureReset(std::multimap<uint32_t, ClosedIS*>* ClosureList) {
 }
 
 void buildMinGenLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::vector<EquivClass*>& lattice, TIDList* TList, std::ostream& out) { 
-    out << "=== Minimal Generator Lattice ===\n";
+    out << "=== Minimal Generator Lattice ===\n\n";
     // Collect and sort all generators from ClosureList
     std::vector<GenNode*> sorted_FMG;
     for (const auto& entry : ClosureList) {
@@ -1349,7 +1349,27 @@ void buildMinGenLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ve
 				equiv_map[g_items] = g_class; 
 				lattice.push_back(g_class); 
 			} 
-	} 
+	}
+	
+	// Write lattice content to output file
+	for (const auto& ec : lattice) {
+		out << "Equivalence Class (support: " << ec->support << "):\n";
+		out << "Representative: { ";
+		for (const auto& item : ec->representative->items()) {
+			out << item << " ";
+		}
+		out << "}\n";
+		
+		out << "Members: ";
+		for (const auto& member : ec->members) {
+			out << "{ ";
+			for (const auto& item : member->items()) {
+				out << item << " ";
+			}
+			out << "} ";
+		}
+		out << "\n\n";
+	}
 }
 
 void manageEquivClass(GenNode* g, GenNode* R, std::vector<EquivClass*>& lattice) { 

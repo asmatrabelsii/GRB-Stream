@@ -501,7 +501,7 @@ int main(int argc, char** argv)
       }
   }
     
-    exportGeneratorLattice(ClosureList, "../outLattice.txt");
+    buildGeneratorLattice(ClosureList, "../outLattice.txt");
   
   // Write rules to rules.txt
   std::ofstream rules_out("../rules.txt");

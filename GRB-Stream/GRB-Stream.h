@@ -23,6 +23,17 @@ extern int testedJp;
 extern float actgen;
 extern bool extratext;
 
+// Add these to GRB-Stream.h
+struct EquivClass {
+		std::set<uint32_t> representative;
+		std::set<std::set<uint32_t>> generators;
+		uint32_t support;
+		std::set<EquivClass*> immediate_successors;
+};
+
+std::set<uint32_t> findRepresentative(const std::set<uint32_t>& generator, std::map<std::set<uint32_t>, EquivClass*>& generatorToClass);
+void manageEquivClass(const std::set<uint32_t>& newGenerator, const std::set<uint32_t>& representative, std::map<std::set<uint32_t>, EquivClass*>& generatorToClass, std::vector<EquivClass*>& equivalenceClasses);
+void buildGeneratorLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, const std::string& outputPath);
 // Function declarations
 void descend(GenNode* n, std::set<uint32_t> X, std::set<uint32_t> t_n, std::multimap<uint32_t, ClosedIS*>* fGenitors, std::multimap<uint32_t, ClosedIS*>* ClosureList, std::vector<ClosedIS*>* newClosures, TIDList* TList, GenNode* root);
 void filterCandidates(std::multimap<uint32_t, ClosedIS*>* fGenitors, GenNode* root, std::multimap<uint32_t, ClosedIS*>* ClosureList);

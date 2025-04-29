@@ -1,8 +1,12 @@
 #include "GRB-Stream.h"
 #include "Transaction.h"
 #include <iostream>
+#include <set>
+#include <map>
+#include <algorithm>
 #include <fstream>
 #include <chrono>
+#include <iomanip>
 
 uint32_t NODE_ID = 0;
 uint32_t minSupp = 3;
@@ -309,6 +313,73 @@ void Transaction<uint32_t>::load(char* _s, const char* _delims, const short _wit
   }
 };
 
+void exportGeneratorLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, const std::string& outputPath) {
+    std::ofstream out(outputPath);
+    if (!out.is_open()) {
+        std::cerr << "Error opening file: " << outputPath << std::endl;
+        return;
+    }
+
+    out << "Minimal Generator Lattice\n";
+    out << "Format: {generator_items} (support) => {successor_items} (support)\n\n";
+
+    // Collect all generators and associate with their closure supports
+    std::vector<std::pair<std::set<uint32_t>, int>> generators;
+    for (const auto& [_, closure] : ClosureList) {
+        int support = closure->support; // assuming getSupport() gives support of closure
+        for (GenNode* gen : closure->gens) {
+            generators.emplace_back(gen->items(), support);
+        }
+    }
+
+    // Generate lattice edges
+    for (size_t i = 0; i < generators.size(); ++i) {
+        const auto& [gi, support_i] = generators[i];
+
+        out << "{";
+        for (auto it = gi.begin(); it != gi.end(); ++it) {
+            if (it != gi.begin()) out << " ";
+            out << *it;
+        }
+        out << "} (" << support_i << ") =>";
+
+        for (size_t j = 0; j < generators.size(); ++j) {
+            if (i == j) continue;
+
+            const auto& [gj, support_j] = generators[j];
+
+            // gi ⊂ gj and not equal
+            if (std::includes(gj.begin(), gj.end(), gi.begin(), gi.end()) && gi != gj) {
+                // Ensure minimal direct link
+                bool isDirect = true;
+                for (size_t k = 0; k < generators.size(); ++k) {
+                    if (k == i || k == j) continue;
+                    const auto& [gk, _] = generators[k];
+                    if (std::includes(gk.begin(), gk.end(), gi.begin(), gi.end()) &&
+                        std::includes(gj.begin(), gj.end(), gk.begin(), gk.end()) &&
+                        gi != gk && gk != gj) {
+                        isDirect = false;
+                        break;
+                    }
+                }
+
+                if (isDirect) {
+                    out << " {";
+                    for (auto it = gj.begin(); it != gj.end(); ++it) {
+                        if (it != gj.begin()) out << " ";
+                        out << *it;
+                    }
+                    out << "} (" << support_j << ")";
+                }
+            }
+        }
+
+        out << "\n";
+    }
+
+    out.close();
+};
+
 int main(int argc, char** argv)
 {
     auto start = std::chrono::high_resolution_clock::now();
@@ -429,9 +500,8 @@ int main(int argc, char** argv)
           break;
       }
   }
-  
-  std::vector<EquivClass*> lattice;
-  buildMinGenLattice(FMG_K, lattice, TList);
+    
+    exportGeneratorLattice(ClosureList, "../outLattice.txt");
   
   // Write rules to rules.txt
   std::ofstream rules_out("../rules.txt");
@@ -439,11 +509,9 @@ int main(int argc, char** argv)
       std::cerr << "Failed to open rules.txt for writing" << std::endl;
       return 1;
   }
-  rules_out << "=== Exact Rules (ER) ===\n";
-  extractER(ClosureList, rules_out);
-  rules_out << "\n=== Aproximative Rules (AR) ===\n";
-  extractAR(lattice, TList, minconf, rules_out);
-  rules_out.close();
+    rules_out << "=== Exact Rules (ER) ===\n";
+    extractER(ClosureList, rules_out);
+    ExtractIR("../outLattice.txt", rules_out, minconf);
   
   std::cout << "Displaying all found generators as of transaction " << i << " :\n";
   
@@ -470,16 +538,10 @@ int main(int argc, char** argv)
       f2.open(output_order);
       printClosureOrderTM(ClosureList, f2);
       f2.close();
-  }
-  
-  for (auto ec : lattice) {
-      delete ec->representative->immediate_succs;
-      delete ec;
-  }
-  FMG_K.clear();
-  
-  releaseClosures(ClosureList);
-  releaseAllGens(root);
-  
-  return 0;
+  }    
+    
+    releaseClosures(ClosureList);
+    releaseAllGens(root);
+    
+    return 0;
 }

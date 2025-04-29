@@ -22,7 +22,6 @@ extern uint32_t minSupp;
 extern int testedJp;
 extern float actgen;
 extern bool extratext;
-extern std::set<GenNode*> FMG_K; // Global set for frequent minimal generators
 
 // Function declarations
 void descend(GenNode* n, std::set<uint32_t> X, std::set<uint32_t> t_n, std::multimap<uint32_t, ClosedIS*>* fGenitors, std::multimap<uint32_t, ClosedIS*>* ClosureList, std::vector<ClosedIS*>* newClosures, TIDList* TList, GenNode* root);
@@ -53,10 +52,8 @@ void closureReset(std::multimap<uint32_t, ClosedIS*>* ClosureList);
 ClosedIS* findCI(std::set<uint32_t> itemSet, std::multimap<uint32_t, ClosedIS*>* ClosureList);
 int CISSum(std::set<uint32_t> Itemset);
 std::ostream& operator<<(std::ostream& os, ClosedIS CI);
-void buildMinGenLattice(std::set<GenNode*>&, std::vector<EquivClass*>&, TIDList*);
-void manageEquivClass(GenNode*, GenNode*, std::vector<EquivClass*>&);
-void extractER(std::multimap<uint32_t, ClosedIS*>&, std::ostream&);
-void extractAR(std::vector<EquivClass*>&, TIDList*, float, std::ostream&);
+void extractER(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ostream& out);
+void ExtractIR(const std::string& latticeFile, std::ostream& out, float minconf);
 
 // Struct definitions
 struct GenNode { 
@@ -69,13 +66,6 @@ struct GenNode {
 		std::set<GenNode*>* immediate_succs; 
 		std::set<uint32_t> items(); 
 		GenNode(uint32_t, GenNode*, ClosedIS*); 
-};
-
-struct EquivClass { 
-		GenNode* representative; 
-		std::set<GenNode*> members; 
-		std::set<EquivClass*> immediate_succs; 
-		uint32_t support; 
 };
 
 struct ClosedIS {

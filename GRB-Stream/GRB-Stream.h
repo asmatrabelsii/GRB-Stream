@@ -31,9 +31,9 @@ struct EquivClass {
 		std::set<EquivClass*> immediate_successors;
 };
 
-std::set<uint32_t> Representative(const std::set<uint32_t>& g, std::map<std::set<uint32_t>, EquivClass*>& generatorToClass);
-void ManageEquivClass(const std::set<uint32_t>& g, const std::set<uint32_t>& g2, std::map<std::set<uint32_t>, EquivClass*>& generatorToClass, std::vector<EquivClass*>& equivalenceClasses);
-void GenOrder(std::multimap<uint32_t, ClosedIS*>& ClosureList, const std::string& outputPath);
+std::set<uint32_t> findRepresentative(const std::set<uint32_t>& generator, std::map<std::set<uint32_t>, EquivClass*>& generatorToClass);
+void manageEquivClass(const std::set<uint32_t>& newGenerator, const std::set<uint32_t>& representative, std::map<std::set<uint32_t>, EquivClass*>& generatorToClass, std::vector<EquivClass*>& equivalenceClasses);
+void buildGeneratorLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, const std::string& outputPath);
 // Function declarations
 void descend(GenNode* n, std::set<uint32_t> X, std::set<uint32_t> t_n, std::multimap<uint32_t, ClosedIS*>* fGenitors, std::multimap<uint32_t, ClosedIS*>* ClosureList, std::vector<ClosedIS*>* newClosures, TIDList* TList, GenNode* root);
 void filterCandidates(std::multimap<uint32_t, ClosedIS*>* fGenitors, GenNode* root, std::multimap<uint32_t, ClosedIS*>* ClosureList);

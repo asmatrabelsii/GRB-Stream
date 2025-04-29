@@ -1257,183 +1257,169 @@ void closureReset(std::multimap<uint32_t, ClosedIS*>* ClosureList) {
 	}
 }
 
-	void GenOrder(std::multimap<uint32_t, ClosedIS*>& ClosureList, 
-							 const std::string& outputPath) {
-			// Step 1: Collect all generators (FMGK)
-			std::vector<std::set<uint32_t>> FMGK;
-			std::map<std::set<uint32_t>, uint32_t> generatorSupport;
+void buildGeneratorLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, 
+												 const std::string& outputPath) {
+		// Step 1: Collect all generators and group by support (decreasing order)
+		std::map<uint32_t, std::vector<std::set<uint32_t>>, std::greater<uint32_t>> supportToGenerators;
 
-			for (const auto& [_, closure] : ClosureList) {
-					for (GenNode* gen : closure->gens) {
-							std::set<uint32_t> items = gen->items();
-							FMGK.push_back(items);
-							generatorSupport[items] = closure->support;
-					}
-			}
+		for (const auto& [_, closure] : ClosureList) {
+				for (GenNode* gen : closure->gens) {
+						std::set<uint32_t> items = gen->items();
+						supportToGenerators[closure->support].push_back(items);
+				}
+		}
 
-			// Structures for equivalence classes
-			std::vector<EquivClass*> equivalenceClasses;
-			std::map<std::set<uint32_t>, EquivClass*> generatorToClass;
+		// Structures for equivalence classes
+		std::vector<EquivClass*> equivalenceClasses;
+		std::map<std::set<uint32_t>, EquivClass*> generatorToClass;
 
-			// Step 2: Process generators (line 3)
-			for (const auto& g : FMGK) {
-					// Get all direct (k-1)-subsets (line 4)
-					std::vector<std::set<uint32_t>> directSubsets;
-					for (auto it = g.begin(); it != g.end(); ++it) {
-							std::set<uint32_t> subset = g;
-							subset.erase(*it);
-							directSubsets.push_back(subset);
-					}
+		// Step 2: Process generators in decreasing support order
+		for (auto& [support, generators] : supportToGenerators) {
+				for (auto& generator : generators) {
+						// Find representative if this generator belongs to an existing class
+						std::set<uint32_t> representative = findRepresentative(generator, generatorToClass);
 
-					// Process each direct subset (line 4)
-					for (const auto& g1 : directSubsets) {
-							if (generatorToClass.find(g1) == generatorToClass.end()) {
-									continue; // Subset not in lattice yet
-							}
+						if (!representative.empty()) {
+								// Generator belongs to existing class
+								manageEquivClass(generator, representative, generatorToClass, equivalenceClasses);
+								continue;
+						}
 
-							// Get representative (line 5)
-							std::set<uint32_t> R = Representative(g1, generatorToClass);
-							EquivClass* R_class = generatorToClass[R];
+						// Create new equivalence class
+						EquivClass* newClass = new EquivClass();
+						newClass->representative = generator;
+						newClass->generators.insert(generator);
+						newClass->support = support;
 
-							// Process immediate successors (line 6)
-							std::set<EquivClass*> toRemove;
-							std::set<EquivClass*> toAdd;
-							bool addedToSuccessors = false;
+						// Find all immediate predecessors by checking (k-1)-subsets
+						std::set<EquivClass*> predecessors;
+						for (auto it = generator.begin(); it != generator.end(); ++it) {
+								std::set<uint32_t> subset = generator;
+								subset.erase(*it);
 
-							for (EquivClass* g2_class : R_class->immediate_successors) {
-									const std::set<uint32_t>& g2 = g2_class->representative;
+								if (generatorToClass.count(subset)) {
+										EquivClass* predClass = generatorToClass[subset];
+										predecessors.insert(predClass);
+								}
+						}
 
-									// Case 1: Same support and same closure (line 7-8)
-									if (generatorSupport[g] == g2_class->support && 
-											generatorSupport[g] == generatorSupport[union(g, g2)]) {
-											ManageEquivClass(g, g2, generatorToClass, equivalenceClasses);
-											addedToSuccessors = true;
-											break;
-									}
-									// Case 2: g.support < g2.support and same closure (line 9-10)
-									else if (generatorSupport[g] < g2_class->support && 
-													 generatorSupport[g] == generatorSupport[union(g, g2)]) {
-											// Compare with g2's immediate successors (line 10)
-											bool foundPlace = false;
-											for (EquivClass* g3_class : g2_class->immediate_successors) {
-													if (g3_class->support > generatorSupport[g]) {
-															// Recursively compare with g3's successors
-															// (This would be implemented similarly)
-															foundPlace = true;
-															break;
-													}
-											}
+						// Compare with immediate successors of predecessors
+						for (EquivClass* pred : predecessors) {
+								bool merged = false;
 
-											if (!foundPlace) {
-													toRemove.insert(g2_class);
-													toAdd.insert(g2_class);
-											}
-									}
-							}
+								for (auto it = pred->immediate_successors.begin(); it != pred->immediate_successors.end(); ) {
+										EquivClass* succ = *it;
 
-							// Update R's immediate successors (line 12-13)
-							if (!addedToSuccessors) {
-									for (auto cls : toRemove) {
-											R_class->immediate_successors.erase(cls);
-									}
-									for (auto cls : toAdd) {
-											R_class->immediate_successors.insert(cls);
-									}
+										// Case a: Same support and same closure
+										if (succ->support == newClass->support) {
+												// Merge classes
+												succ->generators.insert(generator);
+												generatorToClass[generator] = succ;
+												manageEquivClass(generator, succ->representative, generatorToClass, equivalenceClasses);
+												merged = true;
+												break;
+										}
+										// Case b: New class is successor
+										else if (succ->support < newClass->support) {
+												// Check if newClass should be between pred and succ
+												bool isBetween = true;
+												for (auto between : succ->immediate_successors) {
+														if (between->support < newClass->support && 
+																between->support > succ->support) {
+																isBetween = false;
+																break;
+														}
+												}
 
-									// If no comparable classes found, add g to R's immediate successors
-									bool incomparable = true;
-									for (EquivClass* g2_class : R_class->immediate_successors) {
-											if (generatorSupport[g] == g2_class->support || 
-													generatorSupport[union(g, g2_class->representative)] == generatorSupport[g]) {
-													incomparable = false;
-													break;
-											}
-									}
+												if (isBetween) {
+														// Insert newClass between pred and succ
+														pred->immediate_successors.erase(it++);
+														pred->immediate_successors.insert(newClass);
+														newClass->immediate_successors.insert(succ);
+												} else {
+														++it;
+												}
+										}
+										else {
+												++it;
+										}
+								}
 
-									if (incomparable) {
-											// Create new equivalence class for g if needed
-											if (generatorToClass.find(g) == generatorToClass.end()) {
-													EquivClass* newClass = new EquivClass();
-													newClass->representative = g;
-													newClass->generators.insert(g);
-													newClass->support = generatorSupport[g];
-													generatorToClass[g] = newClass;
-													equivalenceClasses.push_back(newClass);
-											}
-											R_class->immediate_successors.insert(generatorToClass[g]);
-									}
-							}
-					}
-			}
+								if (!merged) {
+										pred->immediate_successors.insert(newClass);
+								}
+						}
 
-			// Output the lattice
-			std::ofstream out(outputPath);
-			if (!out.is_open()) {
-					std::cerr << "Error opening file: " << outputPath << std::endl;
-					return;
-			}
+						if (!generatorToClass.count(generator)) {
+								equivalenceClasses.push_back(newClass);
+								generatorToClass[generator] = newClass;
+						}
+				}
+		}
 
-			out << "Minimal Generator Lattice\n";
-			out << "Format: {generator_items} (support) => {successor_items} (support)\n\n";
+		// Step 3: Output the lattice
+		std::ofstream out(outputPath);
+		if (!out.is_open()) {
+				std::cerr << "Error opening file: " << outputPath << std::endl;
+				return;
+		}
 
-			for (EquivClass* cls : equivalenceClasses) {
-					out << "{";
-					for (auto it = cls->representative.begin(); it != cls->representative.end(); ++it) {
-							if (it != cls->representative.begin()) out << " ";
-							out << *it;
-					}
-					out << "} (" << cls->support << ") =>";
+		out << "Minimal Generator Lattice\n";
+		out << "Format: {generator_items} (support) => {successor_items} (support)\n\n";
 
-					for (EquivClass* succ : cls->immediate_successors) {
-							out << " {";
-							for (auto it = succ->representative.begin(); it != succ->representative.end(); ++it) {
-									if (it != succ->representative.begin()) out << " ";
-									out << *it;
-							}
-							out << "} (" << succ->support << ")";
-					}
-					out << "\n";
-			}
+		for (EquivClass* cls : equivalenceClasses) {
+				out << "{";
+				for (auto it = cls->representative.begin(); it != cls->representative.end(); ++it) {
+						if (it != cls->representative.begin()) out << " ";
+						out << *it;
+				}
+				out << "} (" << cls->support << ") =>";
 
-			out.close();
+				for (EquivClass* succ : cls->immediate_successors) {
+						out << " {";
+						for (auto it = succ->representative.begin(); it != succ->representative.end(); ++it) {
+								if (it != succ->representative.begin()) out << " ";
+								out << *it;
+						}
+						out << "} (" << succ->support << ")";
+				}
+				out << "\n";
+		}
 
-			// Clean up
-			for (EquivClass* cls : equivalenceClasses) {
-					delete cls;
-			}
-	}
+		out.close();
 
-	std::set<uint32_t> Representative(const std::set<uint32_t>& g, 
-																	std::map<std::set<uint32_t>, EquivClass*>& generatorToClass) {
-			if (generatorToClass.find(g) != generatorToClass.end()) {
-					return generatorToClass[g]->representative;
-			}
-			return {};
-	}
+		// Clean up
+		for (EquivClass* cls : equivalenceClasses) {
+				delete cls;
+		}
+}
 
-	void ManageEquivClass(const std::set<uint32_t>& g, const std::set<uint32_t>& g2,
-											 std::map<std::set<uint32_t>, EquivClass*>& generatorToClass,
-											 std::vector<EquivClass*>& equivalenceClasses) {
-			// Merge g into g2's equivalence class
-			EquivClass* g2_class = generatorToClass[g2];
-			g2_class->generators.insert(g);
-			generatorToClass[g] = g2_class;
+std::set<uint32_t> findRepresentative(const std::set<uint32_t>& generator, 
+																		std::map<std::set<uint32_t>, EquivClass*>& generatorToClass) {
+		if (generatorToClass.count(generator)) {
+				return generatorToClass[generator]->representative;
+		}
+		return {};
+}
 
-			// Replace all occurrences of g with g2 in successor lists
-			for (EquivClass* cls : equivalenceClasses) {
-					if (cls->immediate_successors.find(generatorToClass[g]) != cls->immediate_successors.end()) {
-							cls->immediate_successors.erase(generatorToClass[g]);
-							cls->immediate_successors.insert(g2_class);
-					}
-			}
-	}
+void manageEquivClass(const std::set<uint32_t>& newGenerator, 
+										 const std::set<uint32_t>& representative,
+										 std::map<std::set<uint32_t>, EquivClass*>& generatorToClass,
+										 std::vector<EquivClass*>& equivalenceClasses) {
+		// Replace all occurrences of newGenerator with representative
+		EquivClass* cls = generatorToClass[representative];
+		cls->generators.insert(newGenerator);
+		generatorToClass[newGenerator] = cls;
 
-	// Helper function to compute union of two sets
-	std::set<uint32_t> union(const std::set<uint32_t>& a, const std::set<uint32_t>& b) {
-			std::set<uint32_t> result = a;
-			result.insert(b.begin(), b.end());
-			return result;
-	}
+		// Update all immediate successor lists where newGenerator appears
+		for (EquivClass* other : equivalenceClasses) {
+				if (other->immediate_successors.count(generatorToClass[newGenerator])) {
+						other->immediate_successors.erase(generatorToClass[newGenerator]);
+						other->immediate_successors.insert(cls);
+				}
+		}
+}
+
 void extractER(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ostream& out) { 
 	for (auto& entry : ClosureList) { 
 		ClosedIS* f = entry.second; 

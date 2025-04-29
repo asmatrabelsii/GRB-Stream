@@ -434,7 +434,7 @@ int main(int argc, char** argv)
       }
   }
     
-    buildGeneratorLattice(ClosureList, "../outLattice.txt");
+    GenOrder(ClosureList, "../outLattice.txt");
   
   // Write rules to rules.txt
   std::ofstream rules_out("../rules.txt");

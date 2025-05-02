@@ -15,7 +15,6 @@ struct ClosedIS;
 struct GenNode;
 struct TIDList;
 struct MinNode;
-struct EquivClass;
 
 extern uint32_t NODE_ID;
 extern uint32_t minSupp;
@@ -23,17 +22,6 @@ extern int testedJp;
 extern float actgen;
 extern bool extratext;
 
-// Add these to GRB-Stream.h
-struct EquivClass {
-		std::set<uint32_t> representative;
-		std::set<std::set<uint32_t>> generators;
-		uint32_t support;
-		std::set<EquivClass*> immediate_successors;
-};
-
-std::set<uint32_t> findRepresentative(const std::set<uint32_t>& generator, std::map<std::set<uint32_t>, EquivClass*>& generatorToClass);
-void manageEquivClass(const std::set<uint32_t>& newGenerator, const std::set<uint32_t>& representative, std::map<std::set<uint32_t>, EquivClass*>& generatorToClass, std::vector<EquivClass*>& equivalenceClasses);
-void buildGeneratorLattice(std::multimap<uint32_t, ClosedIS*>& ClosureList, const std::string& outputPath);
 // Function declarations
 void descend(GenNode* n, std::set<uint32_t> X, std::set<uint32_t> t_n, std::multimap<uint32_t, ClosedIS*>* fGenitors, std::multimap<uint32_t, ClosedIS*>* ClosureList, std::vector<ClosedIS*>* newClosures, TIDList* TList, GenNode* root);
 void filterCandidates(std::multimap<uint32_t, ClosedIS*>* fGenitors, GenNode* root, std::multimap<uint32_t, ClosedIS*>* ClosureList);
@@ -64,8 +52,7 @@ ClosedIS* findCI(std::set<uint32_t> itemSet, std::multimap<uint32_t, ClosedIS*>*
 int CISSum(std::set<uint32_t> Itemset);
 std::ostream& operator<<(std::ostream& os, ClosedIS CI);
 void extractER(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ostream& out);
-void ExtractIR(const std::string& latticeFile, std::ostream& out, float minconf);
-
+void extractIR(std::multimap<uint32_t, ClosedIS *> *ClosureList, float minconf, const std::string &output_file);
 // Struct definitions
 struct GenNode { 
 		uint32_t item; 
@@ -73,8 +60,6 @@ struct GenNode {
 		std::map<uint32_t, GenNode*>* succ;
 		GenNode* parent; 
 		ClosedIS* clos; 
-		uint32_t support; 
-		std::set<GenNode*>* immediate_succs; 
 		std::set<uint32_t> items(); 
 		GenNode(uint32_t, GenNode*, ClosedIS*); 
 };

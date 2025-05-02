@@ -433,18 +433,16 @@ int main(int argc, char** argv)
           break;
       }
   }
-    
-    buildGeneratorLattice(ClosureList, "../outLattice.txt");
   
   // Write rules to rules.txt
-  std::ofstream rules_out("../rules.txt");
+  std::ofstream rules_out("../OutExactRules.txt");
   if (!rules_out.is_open()) {
-      std::cerr << "Failed to open rules.txt for writing" << std::endl;
+      std::cerr << "Failed to open OutRules.txt for writing" << std::endl;
       return 1;
   }
     rules_out << "=== Exact Rules (ER) ===\n";
     extractER(ClosureList, rules_out);
-    ExtractIR("../outLattice.txt", rules_out, minconf);
+    extractIR(&ClosureList, minconf, "../OutInformativeRules.txt");
   
   std::cout << "Displaying all found generators as of transaction " << i << " :\n";
   

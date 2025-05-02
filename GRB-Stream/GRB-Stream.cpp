@@ -1260,6 +1260,7 @@ void closureReset(std::multimap<uint32_t, ClosedIS*>* ClosureList) {
 void extractER(std::multimap<uint32_t, ClosedIS*>& ClosureList, std::ostream& out) { 
 	for (auto& entry : ClosureList) { 
 		ClosedIS* f = entry.second; 
+		if (f->deleted) continue; // Skip deleted closures
 		for (auto g : f->gens) { 
 			std::set<uint32_t> g_items = g->items(); 
 			if (g_items != f->itemset) { // g != f 
